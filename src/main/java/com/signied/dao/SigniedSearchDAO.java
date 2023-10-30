@@ -18,10 +18,20 @@ public class SigniedSearchDAO{
 	public static SigniedSearchDAO getInstance() {
 		return instance;
 	}
-	public List<RoomVO> selectAllBoards() throws SQLException {
+	public List<RoomVO> searchRoom(String checkIn, String checkOut, int totalAmount) throws SQLException {
 		
 		List<RoomVO> list = new ArrayList<RoomVO>();
-		String sql = "";
+		String sql = "SELECT r.roomNum, r.roomName, r.roomType, r.viewType, r.roomCapacity, r.roomPrice, r.inventory, r.img\n"
+				+ "FROM room r\n"
+				+ "LEFT JOIN (\n"
+				+ "    SELECT roomNum, COUNT(*) as daily_reserved_count\n"
+				+ "    FROM reservation\n"
+				+ "    WHERE (checkIn <= TO_DATE( ? , 'YYYY-MM-DD') AND checkOut > TO_DATE( ? , 'YYYY-MM-DD')) \n"
+				+ "    GROUP BY roomNum\n"
+				+ ") res ON r.roomNum = res.roomNum\n"
+				+ "WHERE r.roomCapacity >= ? \n"
+				+ "AND COALESCE(res.daily_reserved_count, 0) < r.inventory "
+				+ "ORDER BY r.roomPrice ASC";
 		Connection conn = null;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -30,19 +40,25 @@ public class SigniedSearchDAO{
 		try {
 			conn = DBManager.getConnection();
 			ps = conn.prepareStatement(sql);
+			ps.setString(1, checkIn);
+			ps.setString(2, checkOut);
+			ps.setInt(3, totalAmount);
+
 			rs = ps.executeQuery();
+			
 			while(rs.next()) {
 				vo = new RoomVO();
-				
-				
-				
-				
-				
-				
-				
-				
+				vo.setRoomNum(rs.getInt("roomNum"));
+				vo.setRoomName(rs.getString("roomname"));
+				vo.setRoomType(rs.getString("ROOMTYPE"));
+				vo.setViewType(rs.getString("viewType"));
+				vo.setInventory(rs.getInt("inventory"));
+				vo.setRoomCapacity(rs.getInt("roomCapacity"));
+				vo.setRoomPrice(rs.getInt("roomPrice")); 
+				vo.setImg(rs.getString("img"));
 				
 				list.add(vo);
+//				System.out.println("검색한 room list : " + vo);
 			}
 			
 			
